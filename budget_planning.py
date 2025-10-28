@@ -2,11 +2,22 @@ from ru_local import *
 
 
 def analyze_historical_spending(transactions: list) -> dict:
+    """
+    Analyze historical spending patterns from transactions data.
+    
+    Args:
+        transactions (list): List of transaction dictionaries with 'Сумма' and 'Категория' keys
+        
+    Returns:
+        dict: Dictionary containing:
+            - 'average_spending': Average spending per category
+            - 'recommendations': List of spending reduction recommendations
+    """
     category = {}
     
     for transaction in transactions:
-        cat = transaction.get('Категория', OTHER) 
-        amount = float(transaction['Сумма']) 
+        cat = transaction.get('Категория', OTHER)
+        amount = float(transaction['Сумма'])
         category.setdefault(cat, []).append(amount)
         
     average_spending = {cat: sum(val) / len(val) for cat, val in category.items()}
@@ -24,6 +35,16 @@ def analyze_historical_spending(transactions: list) -> dict:
 
 
 def create_budget_template(analysis: dict, income: float) -> dict:
+    """
+    Create a budget template based on historical spending analysis.
+    
+    Args:
+        analysis (dict): Output from analyze_historical_spending function
+        income (float): Monthly income amount
+        
+    Returns:
+        dict: Budget allocation by category including savings
+    """
     average_spending = analysis['average_spending']
     average_total = sum(average_spending.values())
     budget = {cat: income * (val / average_total) for cat, val in average_spending.items()}
@@ -33,11 +54,21 @@ def create_budget_template(analysis: dict, income: float) -> dict:
 
 
 def compare_budget_vs_actual(budget: dict, actual_transactions: list) -> dict:
+    """
+    Compare planned budget against actual spending.
+    
+    Args:
+        budget (dict): Budget template from create_budget_template
+        actual_transactions (list): List of actual transaction dictionaries
+        
+    Returns:
+        dict: Comparison data for each category with actual, planned, difference and status
+    """
     actual_by_category = {}
     
     for actual_transaction in actual_transactions:
-        cat = actual_transaction.get('Категория', OTHER) 
-        amount = float(actual_transaction['Сумма']) 
+        cat = actual_transaction.get('Категория', OTHER)
+        amount = float(actual_transaction['Сумма'])
         actual_by_category[cat] = actual_by_category.get(cat, 0) + amount
         
     comparison = {}
@@ -55,7 +86,17 @@ def compare_budget_vs_actual(budget: dict, actual_transactions: list) -> dict:
 
 
 def print_financial_report(income, transactions, analysis, budget, comparison):
-    total_spending = sum(float(t['Сумма']) for t in transactions) 
+    """
+    Print a comprehensive financial report to console.
+    
+    Args:
+        income (float): Total income
+        transactions (list): List of transaction dictionaries
+        analysis (dict): Spending analysis from analyze_historical_spending
+        budget (dict): Budget template from create_budget_template
+        comparison (dict): Budget comparison from compare_budget_vs_actual
+    """
+    total_spending = sum(float(t['Сумма']) for t in transactions)
     balance = income - total_spending
     
     print(f'{INCOME}: {income}')
@@ -75,4 +116,3 @@ def print_financial_report(income, transactions, analysis, budget, comparison):
     
     for cat, infa in comparison.items():
         print(f" - {cat}: {PLANNED} - {infa[PLANNED]:.1f}, {ACTUAL} - {infa[ACTUAL]:.1f}, {STATUS}: {infa[STATUS]}")
-

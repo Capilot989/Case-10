@@ -41,3 +41,11 @@ MONTH_FORMAT = "%Y-%m"
 # Currency
 CURRENCY = "₽"
 PERCENT = "%"
+
+# Budget analysis
+SAVINGS = "Накопления"
+IN_BUDGET = "в бюджете" 
+OVER_BUDGET = "превышен бюджет"
+PLANNED = "план"
+ACTUAL = "факт"
+STATUS = "статус"

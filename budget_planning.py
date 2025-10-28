@@ -26,6 +26,10 @@ def analyze_historical_spending(transactions: list) -> dict:
 def create_budget_template(analysis: dict, income: float) -> dict:
     average_spending = analysis['average_spending']
     average_total = sum(average_spending.values())
+
+    if average_total == 0:
+        return {SAVINGS: income * 0.1}
+        
     budget = {cat: income * (val / average_total) for cat, val in average_spending.items()}
     budget[SAVINGS] = income * 0.1
     
@@ -75,3 +79,4 @@ def print_financial_report(income, transactions, analysis, budget, comparison):
     
     for cat, infa in comparison.items():
         print(f" - {cat}: {PLANNED} - {infa[PLANNED]:.1f}, {ACTUAL} - {infa[ACTUAL]:.1f}, {STATUS}: {infa[STATUS]}")
+

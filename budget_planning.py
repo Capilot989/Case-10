@@ -5,8 +5,8 @@ def analyze_historical_spending(transactions: list) -> dict:
     category = {}
     
     for transaction in transactions:
-        cat = transaction.get('category', OTHER)
-        amount = transaction['amount']
+        cat = transaction.get('Категория', OTHER)
+        amount = float(transaction['Сумма'])  # Преобразование строки в число
         category.setdefault(cat, []).append(amount)
         
     average_spending = {cat: sum(val) / len(val) for cat, val in category.items()}
@@ -36,8 +36,10 @@ def compare_budget_vs_actual(budget: dict, actual_transactions: list) -> dict:
     actual_by_category = {}
     
     for actual_transaction in actual_transactions:
-        cat = actual_transaction.get('category', OTHER)
-        actual_by_category[cat] = actual_by_category.get(cat, 0) + actual_transaction['amount']
+        cat = actual_transaction.get('Категория', OTHER)
+        amount = float(actual_transaction['Сумма'])  # Преобразование строки в число
+        actual_by_category[cat] = actual_by_category.get(cat, 0) + amount
+        
     comparison = {}
     
     for cat, planned in budget.items():
@@ -53,7 +55,7 @@ def compare_budget_vs_actual(budget: dict, actual_transactions: list) -> dict:
 
 
 def print_financial_report(income, transactions, analysis, budget, comparison):
-    total_spending = sum(t['amount'] for t in transactions)
+    total_spending = sum(float(t['Сумма']) for t in transactions)  # Преобразование строки в число
     balance = income - total_spending
     
     print(f'{INCOME}: {income}')
@@ -61,14 +63,13 @@ def print_financial_report(income, transactions, analysis, budget, comparison):
     print(f'{BALANCE}: {balance}')
     
     for cat, val in analysis['average_spending'].items():
-        total = sum(t['amount'] for t in transactions if t['category'] == cat)
+        total = sum(float(t['Сумма']) for t in transactions if t['Категория'] == cat)  # Преобразование
         percent = (total / total_spending) * 100 if total_spending else 0
         print(f'{cat}: {total} {percent:.1f}%')
     
     if analysis['recommendations']:
         for r in analysis['recommendations']:
             print(' -', r)
-            
     else:
         print(NO_RECOMMENDATIONS)
     

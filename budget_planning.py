@@ -1,118 +1,158 @@
 from ru_local import *
+from datetime import datetime
 
 
 def analyze_historical_spending(transactions: list) -> dict:
     """
-    Analyze historical spending patterns from transactions data.
-    
+    Analyzes historical spending data by categories.
     Args:
-        transactions (list): List of transaction dictionaries with 'Сумма' and 'Категория' keys
-        
+        transactions (list): List of transactions in unified format
     Returns:
-        dict: Dictionary containing:
-            - 'average_spending': Average spending per category
-            - 'recommendations': List of spending reduction recommendations
+        Dictionary with spending analysis by categories
     """
-    category = {}
-    
+    category_data = {}
+    months = set()
+
     for transaction in transactions:
-        cat = transaction.get('Категория', OTHER)
+    
         amount = float(transaction['Сумма'])
-        category.setdefault(cat, []).append(amount)
-        
-    average_spending = {cat: sum(val) / len(val) for cat, val in category.items()}
-    total_spending = sum(sum(values) for values in category.values())
-    recommendations = []
-    
-    for cat, avg in average_spending.items():
-        percent = sum(category[cat]) / total_spending * 100
-        if percent >= 30:
-            recommendations.append(f'{RECOMMEND_REDUCE_SPENDING} {cat}: {percent:.1f}%')
-            
-    return {'average_spending': average_spending,
-            'recommendations': recommendations
-            }
+
+        if amount < 0:
+            category = transaction['Категория']
+            amount_abs = abs(amount)
+
+            date_obj = datetime.strptime(transaction['Дата'], DATE_FORMAT)
+            month = date_obj.strftime(MONTH_FORMAT)
+            months.add(month)
+
+            if category not in category_data:
+                category_data[category] = {
+                    'total': 0,
+                    'count': 0,
+                    'max': 0
+                }
+
+            category_data[category]['total'] += amount_abs
+            category_data[category]['count'] += 1
+
+            if amount_abs > category_data[category]['max']:
+                category_data[category]['max'] = amount_abs
+
+    result = {}
+    num_months = len(months) if months else 1
+
+    for category, data in category_data.items():
+        avg_monthly = data['total'] / num_months
+        result[category] = {
+            'avg_monthly': round(avg_monthly, 2),
+            'max': data['max'],
+            'count': data['count'],
+            'total_months': num_months
+        }
+
+    return result
 
 
-def create_budget_template(analysis: dict, income: float) -> dict:
+def create_budget_template(analysis: dict, transactions: list) -> dict:
     """
-    Create a budget template based on historical spending analysis.
-    
+    Creates budget template based on spending analysis.
     Args:
-        analysis (dict): Output from analyze_historical_spending function
-        income (float): Monthly income amount
-        
+        analysis (dict): Result from analyze_historical_spending
+        transactions (list): Transactions for income calculation
     Returns:
-        dict: Budget allocation by category including savings
+        Dictionary with budget limits by categories
     """
-    average_spending = analysis['average_spending']
-    average_total = sum(average_spending.values())
-    budget = {cat: income * (val / average_total) for cat, val in average_spending.items()}
-    budget[SAVINGS] = income * 0.1
-    
+    budget = {}
+
+    monthly_income = calculate_monthly_income(transactions)
+
+    for category, data in analysis.items():
+        avg_spending = data['avg_monthly']
+
+        if avg_spending > 3000:
+            budget[category] = round(avg_spending * 0.85)
+        else:
+            budget[category] = round(avg_spending * 0.95)
+
+    budget[SAVINGS] = round(monthly_income * 0.1)
     return budget
 
 
-def compare_budget_vs_actual(budget: dict, actual_transactions: list) -> dict:
+def calculate_monthly_income(transactions: list) -> float:
     """
-    Compare planned budget against actual spending.
-    
+    Calculates average monthly income from transactions.
     Args:
-        budget (dict): Budget template from create_budget_template
-        actual_transactions (list): List of actual transaction dictionaries
-        
+        transactions (list): List of transactions
     Returns:
-        dict: Comparison data for each category with actual, planned, difference and status
+        Average monthly income as float
     """
-    actual_by_category = {}
-    
-    for actual_transaction in actual_transactions:
-        cat = actual_transaction.get('Категория', OTHER)
-        amount = float(actual_transaction['Сумма'])
-        actual_by_category[cat] = actual_by_category.get(cat, 0) + amount
-        
-    comparison = {}
-    
-    for cat, planned in budget.items():
-        actual = actual_by_category.get(cat, 0)
-        diff = planned - actual
-        comparison[cat] = {ACTUAL: actual,
-                           PLANNED: planned,
-                           'diff': diff,
-                           STATUS: IN_BUDGET if diff >= 0 else OVER_BUDGET
-                           }
-        
-    return comparison
+    monthly_totals = {}
 
+    for transaction in transactions:
+        amount = float(transaction['Сумма'])
 
-def print_financial_report(income, transactions, analysis, budget, comparison):
-    """
-    Print a comprehensive financial report to console.
-    
-    Args:
-        income (float): Total income
-        transactions (list): List of transaction dictionaries
-        analysis (dict): Spending analysis from analyze_historical_spending
-        budget (dict): Budget template from create_budget_template
-        comparison (dict): Budget comparison from compare_budget_vs_actual
-    """
-    total_spending = sum(float(t['Сумма']) for t in transactions)
-    balance = income - total_spending
-    
-    print(f'{INCOME}: {income}')
-    print(f'{EXPENSES}: {total_spending}')
-    print(f'{BALANCE}: {balance}')
-    
-    for cat, val in analysis['average_spending'].items():
-        total = sum(float(t['Сумма']) for t in transactions if t['Категория'] == cat)
-        percent = (total / total_spending) * 100 if total_spending else 0
-        print(f'{cat}: {total} {percent:.1f}%')
-    
-    if analysis['recommendations']:
-        for r in analysis['recommendations']:
-            print(' -', r)
+        if amount > 0:  
+            date_obj = datetime.strptime(transaction['Дата'], DATE_FORMAT)
+            month = date_obj.strftime(MONTH_FORMAT)
+
+            if month not in monthly_totals:
+                monthly_totals[month] = 0
+            monthly_totals[month] += amount
+
+    if monthly_totals:
+        return sum(monthly_totals.values()) / len(monthly_totals)
     else:
-        print(NO_RECOMMENDATIONS)
-    
-    for cat, infa in comparison.items():
-        print(f" - {cat}: {PLANNED} - {infa[PLANNED]:.1f}, {ACTUAL} - {infa[ACTUAL]:.1f}, {STATUS}: {infa[STATUS]}")
+        return 0
+
+
+def compare_budget_vs_actual(budget: dict, transactions: list, target_month: str = None) -> dict:
+    """
+    Compares budget with actual spending.
+    Args:
+        budget (dict): Budget from create_budget_template
+        transactions (list): Actual transactions to compare
+        target_month (str): Specific month to analyze (optional)
+    Returns:
+        Dictionary with budget comparison results
+    """
+    actual_spending = {}
+
+    for transaction in transactions:
+        amount = float(transaction['Сумма'])
+
+        if amount < 0: 
+            if target_month:
+                date_obj = datetime.strptime(transaction['Дата'], DATE_FORMAT)
+                transaction_month = date_obj.strftime(MONTH_FORMAT)
+                if transaction_month != target_month:
+                    continue
+
+            category = transaction['Категория']
+            amount_abs = abs(amount)
+
+            if category not in actual_spending:
+                actual_spending[category] = 0
+            actual_spending[category] += amount_abs
+
+    comparison = {}
+    for category, planned_amount in budget.items():
+
+        if category == SAVINGS:
+            continue
+
+        actual_amount = actual_spending.get(category, 0)
+
+        if actual_amount <= planned_amount:
+            status = IN_BUDGET
+        else:
+            status = OVER_BUDGET
+
+        comparison[category] = {
+            PLANNED: planned_amount,
+            ACTUAL: round(actual_amount, 2),
+            STATUS: status,
+            PERCENT_OVER: 0 if planned_amount <= 0 else round(
+                ((actual_amount - planned_amount) / planned_amount * 100), 1)
+        }
+
+    return comparison

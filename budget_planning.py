@@ -73,3 +73,4 @@ analysis = analyze_historical_spending(transactions)
 budget = create_budget_template(analysis, income)
 comparison = compare_budget_vs_actual(budget, transactions)
 print_financial_report(income, transactions, analysis, budget, comparison)
+

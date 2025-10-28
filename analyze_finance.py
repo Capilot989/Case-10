@@ -1,8 +1,22 @@
 from collections import defaultdict
 from datetime import datetime
+from ru_local import *
 
 
 def calculate_basic_stats(transactions: list) -> dict:
+    """
+    Calculate basic financial statistics from transactions data.
+    
+    Args:
+        transactions (list): List of transaction dictionaries with 'Сумма' key
+        
+    Returns:
+        dict: Dictionary containing:
+            - 'total_income': Total positive transaction amounts
+            - 'total_expense': Total negative transaction amounts  
+            - 'balance': Difference between income and expense
+            - 'transaction_count': Total number of transactions
+    """
     total_income = sum(float(transaction['Сумма'])
                        for transaction in transactions if float(transaction['Сумма']) > 0)
     total_expense = sum(float(transaction['Сумма'])
@@ -11,16 +25,29 @@ def calculate_basic_stats(transactions: list) -> dict:
     transaction_count = len(transactions)
 
     return {
-        'total_income': total_income,
-        'total_expense': total_expense,
-        'balance': balance,
-        'transaction_count': transaction_count
+        TOTAL_INCOME: total_income,
+        TOTAL_EXPENSE: total_expense,
+        BALANCE: balance,
+        TRANSACTION_COUNT: transaction_count
     }
 
 
 def calculate_by_category(transactions: list) -> dict:
+    """
+    Calculate detailed statistics grouped by transaction categories.
+    
+    Args:
+        transactions (list): List of transaction dictionaries with 'Сумма' and 'Категория' keys
+        
+    Returns:
+        dict: Dictionary with categories as keys and statistics as values including:
+            - 'sum': Total amount per category
+            - 'count': Number of transactions per category
+            - 'expense_percent': Percentage of total expenses for expense categories
+            - 'income_percent': Percentage of total income for income categories
+    """
     category_stats = defaultdict(
-        lambda: {'sum': 0, 'count': 0, 'expense_percent': 0, 'income_percent': 0})
+        lambda: {SUM: 0, COUNT: 0, EXPENSE_PERCENT: 0, INCOME_PERCENT: 0})
    
     total_expense = sum(float(transaction['Сумма']) 
                         for transaction in transactions if float(transaction['Сумма']) < 0)
@@ -31,34 +58,45 @@ def calculate_by_category(transactions: list) -> dict:
         category = transaction['Категория']
         amount = float(transaction['Сумма'])
         
-        category_stats[category]['sum'] += amount
-        category_stats[category]['count'] += 1
+        category_stats[category][SUM] += amount
+        category_stats[category][COUNT] += 1
 
     for category, data in category_stats.items():
-        if data['sum'] < 0:
-            data['expense_percent'] = (
-                abs(data['sum']) / abs(total_expense) * 100) if total_expense != 0 else 0
-            data['income_percent'] = 0
+        if data[SUM] < 0:
+            data[EXPENSE_PERCENT] = (
+                abs(data[SUM]) / abs(total_expense) * 100) if total_expense != 0 else 0
+            data[INCOME_PERCENT] = 0
             
         else:
-            data['income_percent'] = (
-                data['sum'] / total_income * 100) if total_income != 0 else 0
-            data['expense_percent'] = 0
+            data[INCOME_PERCENT] = (
+                data[SUM] / total_income * 100) if total_income != 0 else 0
+            data[EXPENSE_PERCENT] = 0
 
     return dict(category_stats)
 
 
 def analyze_by_time(transactions: list) -> dict:
-    monthly_stats = defaultdict(lambda: {'income': 0, 'expenses': 0})
+    """
+    Analyze transactions by monthly time periods.
+    
+    Args:
+        transactions (list): List of transaction dictionaries with 'Дата' and 'Сумма' keys
+        
+    Returns:
+        dict: Dictionary with months as keys (format: 'YYYY-MM') and values containing:
+            - 'income': Total income for the month
+            - 'expenses': Total expenses for the month (positive values)
+    """
+    monthly_stats = defaultdict(lambda: {INCOME: 0, EXPENSES: 0})
 
     for transaction in transactions:
-        date_obj = datetime.strptime(transaction['Дата'], '%d.%m.%Y')
-        month_str = date_obj.strftime('%Y-%m')
+        date_obj = datetime.strptime(transaction['Дата'], DATE_FORMAT)
+        month_str = date_obj.strftime(MONTH_FORMAT)
         amount = float(transaction['Сумма'])
         
         if amount > 0:
-            monthly_stats[month_str]['income'] += amount
+            monthly_stats[month_str][INCOME] += amount
         else:
-            monthly_stats[month_str]['expenses'] += abs(amount)
+            monthly_stats[month_str][EXPENSES] += abs(amount)
 
     return dict(monthly_stats)

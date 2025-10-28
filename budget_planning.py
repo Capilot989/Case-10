@@ -5,8 +5,8 @@ def analyze_historical_spending(transactions: list) -> dict:
     category = {}
     
     for transaction in transactions:
-        cat = transaction.get('Категория', OTHER)
-        amount = float(transaction['Сумма'])  # Преобразование строки в число
+        cat = transaction.get('Категория', OTHER)  # Исправлено
+        amount = float(transaction['Сумма'])  # Исправлено + преобразование в число
         category.setdefault(cat, []).append(amount)
         
     average_spending = {cat: sum(val) / len(val) for cat, val in category.items()}
@@ -26,10 +26,6 @@ def analyze_historical_spending(transactions: list) -> dict:
 def create_budget_template(analysis: dict, income: float) -> dict:
     average_spending = analysis['average_spending']
     average_total = sum(average_spending.values())
-
-    if average_total == 0:
-        return {SAVINGS: income * 0.1}
-        
     budget = {cat: income * (val / average_total) for cat, val in average_spending.items()}
     budget[SAVINGS] = income * 0.1
     
@@ -40,8 +36,8 @@ def compare_budget_vs_actual(budget: dict, actual_transactions: list) -> dict:
     actual_by_category = {}
     
     for actual_transaction in actual_transactions:
-        cat = actual_transaction.get('Категория', OTHER)
-        amount = float(actual_transaction['Сумма'])  # Преобразование строки в число
+        cat = actual_transaction.get('Категория', OTHER)  # Исправлено
+        amount = float(actual_transaction['Сумма'])  # Исправлено + преобразование в число
         actual_by_category[cat] = actual_by_category.get(cat, 0) + amount
         
     comparison = {}
@@ -59,7 +55,7 @@ def compare_budget_vs_actual(budget: dict, actual_transactions: list) -> dict:
 
 
 def print_financial_report(income, transactions, analysis, budget, comparison):
-    total_spending = sum(float(t['Сумма']) for t in transactions)  # Преобразование строки в число
+    total_spending = sum(float(t['Сумма']) for t in transactions)  # Исправлено + преобразование
     balance = income - total_spending
     
     print(f'{INCOME}: {income}')
@@ -67,7 +63,7 @@ def print_financial_report(income, transactions, analysis, budget, comparison):
     print(f'{BALANCE}: {balance}')
     
     for cat, val in analysis['average_spending'].items():
-        total = sum(float(t['Сумма']) for t in transactions if t['Категория'] == cat)  # Преобразование
+        total = sum(float(t['Сумма']) for t in transactions if t['Категория'] == cat)  # Исправлено + преобразование
         percent = (total / total_spending) * 100 if total_spending else 0
         print(f'{cat}: {total} {percent:.1f}%')
     
@@ -79,4 +75,3 @@ def print_financial_report(income, transactions, analysis, budget, comparison):
     
     for cat, infa in comparison.items():
         print(f" - {cat}: {PLANNED} - {infa[PLANNED]:.1f}, {ACTUAL} - {infa[ACTUAL]:.1f}, {STATUS}: {infa[STATUS]}")
-
